@@ -1,6 +1,6 @@
 # Phosphorylation Data Analysis Pipeline - Nextflow
 
-A standalone Nextflow pipeline for processing phosphorylation site data across multiple species (mouse, rat). This pipeline orchestrates BLAST database creation, data cleaning, BLAST analysis, sequence alignment, and visualization. All scripts and data are self-contained within the `NF_pipeline` directory.
+A standalone Nextflow pipeline for processing phosphorylation site data across multiple species (mouse, rat). This pipeline orchestrates BLAST database creation, data cleaning, BLAST analysis, sequence alignment, and visualization.
 
 ## Overview
 
@@ -29,11 +29,14 @@ This Nextflow pipeline automates the complete phosphorylation data analysis work
    curl -s https://get.nextflow.io | bash
    ```
 
-2. **Python Environment**: Ensure Python 3.8+ is installed with required packages
+2. **Python Environment**: Python 3.8+ is required
    - The pipeline uses Python scripts from `NF_pipeline/scripts/` (included in this directory)
-   - Required packages: pandas, numpy, BioPython, PyYAML, pyxlsb, matplotlib
+   - See [Environment Setup](#environment-setup) section below for detailed setup instructions
 
 3. **BLAST+**: Ensure BLAST+ command-line tools are installed and in PATH
+   - macOS: `brew install blast`
+   - Ubuntu/Debian: `sudo apt-get install ncbi-blast+`
+   - Or download from: https://blast.ncbi.nlm.nih.gov/Blast.cgi?CMD=Web&PAGE_TYPE=BlastDocs&DOC_TYPE=Download
 
 4. **Data**: The pipeline is fully standalone and uses data from `NF_pipeline/data/`:
    - Input data files: `data/mouse_full_data.csv` or `data/rat_full_data.csv`
@@ -42,30 +45,135 @@ This Nextflow pipeline automates the complete phosphorylation data analysis work
    - BLAST databases will be created automatically in `data/blast_dbs/` during pipeline execution
    - The data directory can be specified with `--data_dir` parameter (default: `NF_pipeline/data`)
 
+## Environment Setup
+
+### Quick Setup (Recommended)
+
+Use the provided setup script to create a virtual environment with all required packages:
+
+```bash
+# Make the script executable (if not already)
+chmod +x setup_environment.sh
+
+# Run the setup script
+./setup_environment.sh
+```
+
+This will:
+- Create a Python virtual environment (`venv/`)
+- Install all required packages with specific versions
+- Test the installation
+- Check for BLAST+ installation
+
+### Manual Setup
+
+If you prefer to set up manually:
+
+```bash
+# Create virtual environment
+python3 -m venv venv
+
+# Activate virtual environment
+source venv/bin/activate  # On Linux/macOS
+# or
+venv\Scripts\activate  # On Windows
+
+# Upgrade pip
+pip install --upgrade pip setuptools wheel
+
+# Install requirements
+pip install -r requirements.txt
+```
+
+### Required Python Packages
+
+The pipeline requires the following Python packages (see `requirements.txt` for specific versions):
+
+- **pandas** (>=2.0.0): Data manipulation and analysis
+- **numpy** (>=1.24.0): Numerical computing
+- **biopython** (>=1.80): Bioinformatics tools for sequence analysis
+- **PyYAML** (>=6.0.0): Configuration file parsing
+- **matplotlib** (>=3.7.0): Visualization and plotting
+
+### Using the Environment
+
+After setup, activate the virtual environment before running the pipeline:
+
+```bash
+# Activate virtual environment
+source venv/bin/activate
+
+# Run the pipeline
+nextflow run main.nf --species mouse --input_data data/mouse_full_data.csv
+
+# Deactivate when done
+deactivate
+```
+
+### Verifying Installation
+
+Test that all packages are installed correctly:
+
+```bash
+python3 -c "
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import yaml
+from Bio import SeqIO
+from Bio.Align import PairwiseAligner
+from Bio.Blast import NCBIXML
+print('✓ All packages imported successfully!')
+"
+```
+
 ## Quick Start
+
+### 1. Set Up Environment
+
+First, set up the Python environment:
+
+```bash
+# Option 1: Use the setup script (recommended)
+./setup_environment.sh
+
+# Option 2: Manual setup
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Option 3: Use Conda
+conda env create -f environment.yml
+conda activate nf_phospho_pipeline
+```
+
+### 2. Run the Pipeline
 
 ### Basic Usage
 
 ```bash
+# Activate virtual environment (if using venv)
+source venv/bin/activate
+
 # Process mouse data
 nextflow run main.nf \
     --species mouse \
-    --input_data ../phospho_root/data/processed/mouse/full_data.csv
+    --input_data data/mouse_full_data.csv
 
 # Process rat data
 nextflow run main.nf \
     --species rat \
-    --input_data ../phospho_root/data/processed/rat/full_data.csv
+    --input_data data/rat_full_data.csv
 ```
 
 ### With Custom Paths
 
 ```bash
-# Specify custom phospho_root path
+# Specify custom data directory
 nextflow run main.nf \
     --species mouse \
-    --input_data ../phospho_root/data/processed/mouse/full_data.csv \
-    --phospho_root /path/to/phospho_root \
+    --input_data data/mouse_full_data.csv \
+    --data_dir /path/to/data \
     --output_dir results_mouse
 ```
 
@@ -292,17 +400,24 @@ Edit `nextflow.config` to customize:
 # 1. Navigate to pipeline directory
 cd NF_pipeline
 
-# 2. Run pipeline for mouse
+# 2. Set up environment (first time only)
+./setup_environment.sh
+source venv/bin/activate
+
+# 3. Run pipeline for mouse
 nextflow run main.nf \
     --species mouse \
-    --input_data ../phospho_root/data/processed/mouse/full_data.csv \
+    --input_data data/mouse_full_data.csv \
     --output_dir results_mouse
 
-# 3. Check results
+# 4. Check results
 ls -lh results_mouse/
 
-# 4. View report
+# 5. View report
 firefox results_mouse/pipeline_report.html
+
+# 6. Deactivate environment when done
+deactivate
 ```
 
 ## Future Enhancements

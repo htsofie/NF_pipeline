@@ -50,10 +50,20 @@ SPECIES_MAPPING = {
 
 def load_paper_database(species: str) -> Dict[str, Dict[str, Any]]:
     """Load the paper database FASTA file and parse into dictionary."""
-    db_path = f"data/blast_dbs/UniprotKB_{species}_paper.fasta"
+    # FASTA files are in data/{species}_paper_blast/ directory
+    # Look for any .fasta file in that directory
+    paper_dir = f"data/{species}_paper_blast"
+    if not os.path.exists(paper_dir):
+        raise FileNotFoundError(f"Paper database directory not found: {paper_dir}")
     
-    if not os.path.exists(db_path):
-        raise FileNotFoundError(f"Paper database not found: {db_path}")
+    # Find FASTA file in the directory
+    fasta_files = [f for f in os.listdir(paper_dir) if f.endswith('.fasta')]
+    if not fasta_files:
+        raise FileNotFoundError(f"No FASTA file found in {paper_dir}")
+    if len(fasta_files) > 1:
+        raise FileNotFoundError(f"Multiple FASTA files found in {paper_dir}. Expected exactly one.")
+    
+    db_path = os.path.join(paper_dir, fasta_files[0])
     
     logger.info(f"Loading paper database: {db_path}")
     
@@ -342,15 +352,45 @@ def main():
         return
     
     # Create BLAST database
-    db_path = f"data/blast_dbs/{args.species}_paper_blast"
-    fasta_path = f"data/blast_dbs/UniprotKB_{args.species}_paper.fasta"
+    # FASTA files are in data/{species}_paper_blast/
+    # Create database in current directory (work directory) to avoid symlink issues
+    paper_dir = f"data/{args.species}_paper_blast"
+    db_path = f"{args.species}_paper_blast"  # Create in current directory, not in data/blast_dbs/
     
-    if not os.path.exists(f"{db_path}.phr"):
-        if not create_blast_database(fasta_path, db_path):
-            logger.error("Failed to create BLAST database")
-            return
+    # Find FASTA file in the paper_blast directory
+    if not os.path.exists(paper_dir):
+        logger.error(f"Paper database directory not found: {paper_dir}")
+        return
+    fasta_files = [f for f in os.listdir(paper_dir) if f.endswith('.fasta')]
+    if not fasta_files:
+        logger.error(f"No FASTA file found in {paper_dir}")
+        return
+    if len(fasta_files) > 1:
+        logger.error(f"Multiple FASTA files found in {paper_dir}. Expected exactly one.")
+        return
+    fasta_path = os.path.join(paper_dir, fasta_files[0])
+    
+    # Check if database already exists in the symlinked blast_dbs directory
+    existing_db_path = f"data/blast_dbs/{args.species}_paper_blast"
+    if os.path.exists(f"{existing_db_path}.phr"):
+        logger.info(f"Using existing BLAST database: {existing_db_path}")
+        # Create symlink to existing database in current directory
+        for ext in ['.phr', '.pin', '.psq', '.pog', '.psi', '.psd', '.pss']:
+            src = f"{existing_db_path}{ext}"
+            dst = f"{db_path}{ext}"
+            if os.path.exists(src):
+                try:
+                    os.symlink(os.path.abspath(src), dst)
+                except (FileExistsError, OSError):
+                    pass
     else:
-        logger.info(f"Using existing BLAST database: {db_path}")
+        # Create new database in current directory
+        if not os.path.exists(f"{db_path}.phr"):
+            if not create_blast_database(fasta_path, db_path):
+                logger.error("Failed to create BLAST database")
+                return
+        else:
+            logger.info(f"Using existing BLAST database: {db_path}")
     
     # Initialize new columns in the main dataframe
     df['ID_matches'] = ''

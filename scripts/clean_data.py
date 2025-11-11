@@ -318,11 +318,13 @@ def main() -> int:
         input_path = args.input
         output_path = args.output
         
-        # Load default config for the species
+        # Try to load default config for the species (optional)
         config_path = f'configs/{species}.yaml'
-        if not os.path.exists(config_path):
-            parser.error(f"Config file not found: {config_path}")
-        config = load_config(config_path)
+        if os.path.exists(config_path):
+            config = load_config(config_path)
+        else:
+            # Use empty config if file doesn't exist - filtering functions handle missing config gracefully
+            config = {}
 
     # Check if input file exists
     if not os.path.exists(input_path):

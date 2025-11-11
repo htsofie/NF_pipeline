@@ -1,0 +1,22 @@
+# Conda environment file for Nextflow Phosphorylation Analysis Pipeline
+# Alternative to pip/venv setup
+#
+# Create environment: conda env create -f environment.yml
+# Activate: conda activate nf_phospho_pipeline
+# Deactivate: conda deactivate
+
+name: nf_phospho_pipeline
+channels:
+  - conda-forge
+  - bioconda
+dependencies:
+  - python>=3.8
+  - pandas>=2.0.0
+  - numpy>=1.24.0
+  - matplotlib>=3.7.0
+  - pyyaml>=6.0
+  - biopython>=1.80
+  - pip
+  - pip:
+    # Optional: Excel file reading (only needed if using gen_data.py)
+    # - pyxlsb>=1.0.10

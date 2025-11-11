@@ -1,0 +1,21 @@
+# Nextflow Phosphorylation Analysis Pipeline - Python Requirements
+# Python 3.8+ required
+#
+# Install with: pip install -r requirements.txt
+# Or use the setup script: ./setup_environment.sh
+
+# Core data processing
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Bioinformatics
+biopython>=1.80
+
+# Configuration file parsing
+PyYAML>=6.0
+
+# Visualization
+matplotlib>=3.7.0
+
+# Excel file reading (optional - only needed if using gen_data.py)
+# pyxlsb>=1.0.10
