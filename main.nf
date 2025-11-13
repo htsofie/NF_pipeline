@@ -70,7 +70,7 @@ process clean_data {
         ln -sf "${projectDir}/configs" configs
     fi
     
-    ${pythonExec} "${projectDir}/scripts/clean_data.py" --input ${input_csv} --output cleaned_data.csv --species ${species}
+    "${pythonExec}" "${projectDir}/scripts/clean_data.py" --input ${input_csv} --output cleaned_data.csv --species ${species}
     """
 }
 
@@ -99,7 +99,7 @@ process paper_blast {
         ln -sf "${projectDir}/configs" configs
     fi
     
-    ${pythonExec} "${projectDir}/scripts/paper_blast.py" --input ${cleaned_data} --output paper_blast_results.csv --species ${species}
+    "${pythonExec}" "${projectDir}/scripts/paper_blast.py" --input ${cleaned_data} --output paper_blast_results.csv --species ${species}
     """
 }
 
@@ -128,7 +128,7 @@ process total_blast {
         ln -sf "${projectDir}/configs" configs
     fi
     
-    ${pythonExec} "${projectDir}/scripts/total_blast.py" --input ${paper_blast_results} --output total_blast_results.csv --species ${species}
+    "${pythonExec}" "${projectDir}/scripts/total_blast.py" --input ${paper_blast_results} --output total_blast_results.csv --species ${species}
     """
 }
 
@@ -157,7 +157,7 @@ process align_sequences {
         ln -sf "${projectDir}/configs" configs
     fi
     
-    ${pythonExec} "${projectDir}/scripts/align_to_full_seq.py" --input ${total_blast_results} --output aligned_sequences.csv --species ${species}
+    "${pythonExec}" "${projectDir}/scripts/align_to_full_seq.py" --input ${total_blast_results} --output aligned_sequences.csv --species ${species}
     """
 }
 
@@ -186,7 +186,7 @@ process visualization {
         ln -sf "${projectDir}/configs" configs
     fi
     
-    ${pythonExec} "${projectDir}/scripts/visualization.py" --input ${aligned_sequences} --output_dir . --species ${species}
+    "${pythonExec}" "${projectDir}/scripts/visualization.py" --input ${aligned_sequences} --output_dir . --species ${species}
     """
 }
 
