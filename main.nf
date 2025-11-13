@@ -2,11 +2,45 @@
  * New Nextflow Pipeline 
  * Create Blast databases and then processes data through scripts
  * Processes multiple species in parallel
+ * Portable across Linux and macOS systems
  */
 
-// Parameters
+// Parameters (can be overridden in nextflow.config or command line)
 params.species_list = ['mouse', 'rat']  // List of species to process
 params.outdir = "${projectDir}/results"
+params.python_env = 'auto'  // 'auto', 'venv', or 'conda'
+params.python_exec = null  // Optional: explicit path to Python executable
+
+// Function to detect Python executable
+// Works on both Linux and macOS, supports venv and conda
+// This will be evaluated in each process context
+def getPythonExec() {
+    // If explicitly set, use it
+    if (params.python_exec) {
+        return params.python_exec
+    }
+    
+    // Try venv first (most common)
+    def venvPython3 = new File("${projectDir}/venv/bin/python3")
+    def venvPython = new File("${projectDir}/venv/bin/python")
+    if (venvPython3.exists()) {
+        return venvPython3.toString()
+    } else if (venvPython.exists()) {
+        return venvPython.toString()
+    }
+    
+    // Try conda environment if specified or auto
+    if (params.python_env == 'conda' || params.python_env == 'auto') {
+        // Return conda command - will be checked at runtime
+        return "conda run -n nf_phospho_pipeline python"
+    }
+    
+    // Fall back to system python3 (works on both Linux and macOS)
+    return "python3"
+}
+
+// Get Python executable - will be resolved in process scripts
+pythonExec = getPythonExec()
 
 // Create Results Directory
 new File(params.outdir).mkdirs()
@@ -36,7 +70,7 @@ process clean_data {
         ln -sf "${projectDir}/configs" configs
     fi
     
-    "${projectDir}/venv/bin/python3" "${projectDir}/scripts/clean_data.py" --input ${input_csv} --output cleaned_data.csv --species ${species}
+    ${pythonExec} "${projectDir}/scripts/clean_data.py" --input ${input_csv} --output cleaned_data.csv --species ${species}
     """
 }
 
@@ -65,7 +99,7 @@ process paper_blast {
         ln -sf "${projectDir}/configs" configs
     fi
     
-    "${projectDir}/venv/bin/python3" "${projectDir}/scripts/paper_blast.py" --input ${cleaned_data} --output paper_blast_results.csv --species ${species}
+    ${pythonExec} "${projectDir}/scripts/paper_blast.py" --input ${cleaned_data} --output paper_blast_results.csv --species ${species}
     """
 }
 
@@ -94,7 +128,7 @@ process total_blast {
         ln -sf "${projectDir}/configs" configs
     fi
     
-    "${projectDir}/venv/bin/python3" "${projectDir}/scripts/total_blast.py" --input ${paper_blast_results} --output total_blast_results.csv --species ${species}
+    ${pythonExec} "${projectDir}/scripts/total_blast.py" --input ${paper_blast_results} --output total_blast_results.csv --species ${species}
     """
 }
 
@@ -123,7 +157,7 @@ process align_sequences {
         ln -sf "${projectDir}/configs" configs
     fi
     
-    "${projectDir}/venv/bin/python3" "${projectDir}/scripts/align_to_full_seq.py" --input ${total_blast_results} --output aligned_sequences.csv --species ${species}
+    ${pythonExec} "${projectDir}/scripts/align_to_full_seq.py" --input ${total_blast_results} --output aligned_sequences.csv --species ${species}
     """
 }
 
@@ -135,7 +169,7 @@ process visualization {
     tuple val(species), path(aligned_sequences)
     
     output:
-    path "*.{png}", emit: visualization
+    path "*.png", emit: visualization
 
     script:
     """
@@ -152,7 +186,7 @@ process visualization {
         ln -sf "${projectDir}/configs" configs
     fi
     
-    "${projectDir}/venv/bin/python3" "${projectDir}/scripts/visualization.py" --input ${aligned_sequences} --output_dir . --species ${species}
+    ${pythonExec} "${projectDir}/scripts/visualization.py" --input ${aligned_sequences} --output_dir . --species ${species}
     """
 }
 

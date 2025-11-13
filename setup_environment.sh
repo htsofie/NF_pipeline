@@ -39,35 +39,142 @@ else
     OS="unknown"
 fi
 
-# Create virtual environment
-echo ""
-echo "Creating virtual environment..."
-if [ -d "venv" ]; then
-    echo "Virtual environment already exists. Skipping creation."
-else
-    python3 -m venv venv
-    echo "Virtual environment created successfully."
+# Check if conda is available and user wants to use it
+USE_CONDA=false
+if command -v conda &> /dev/null; then
+    # Check if running non-interactively (CI/CD, etc.)
+    if [ -t 0 ]; then
+        echo ""
+        read -p "Conda detected. Use conda environment instead of venv? (y/n) [n]: " -n 1 -r
+        echo ""
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            USE_CONDA=true
+        fi
+    else
+        # Non-interactive: default to venv unless CONDA_ENV is set
+        if [ "${CONDA_ENV:-false}" = "true" ]; then
+            USE_CONDA=true
+        fi
+    fi
 fi
 
-# Activate virtual environment
+# Create virtual environment
 echo ""
-echo "Activating virtual environment..."
-source venv/bin/activate
+if [ "$USE_CONDA" = true ]; then
+    echo "Setting up Conda environment..."
+    if conda env list | grep -q "^nf_phospho_pipeline "; then
+        echo "Conda environment 'nf_phospho_pipeline' already exists."
+        if [ -t 0 ]; then
+            read -p "Recreate it? (y/n) [n]: " -n 1 -r
+            echo ""
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                RECREATE_CONDA=true
+            else
+                RECREATE_CONDA=false
+            fi
+        else
+            # Non-interactive: use RECREATE_CONDA env var or default to false
+            RECREATE_CONDA="${RECREATE_CONDA:-false}"
+        fi
+        
+        if [ "$RECREATE_CONDA" = "true" ]; then
+            conda env remove -n nf_phospho_pipeline -y
+            conda env create -f environment.yml
+        else
+            echo "Using existing conda environment."
+        fi
+    else
+        conda env create -f environment.yml
+    fi
+    echo "Conda environment created successfully."
+    echo ""
+    echo "To activate: conda activate nf_phospho_pipeline"
+    echo "To deactivate: conda deactivate"
+    PYTHON_CMD="conda run -n nf_phospho_pipeline python"
+    PIP_CMD="conda run -n nf_phospho_pipeline pip"
+else
+    echo "Creating virtual environment..."
+    # Check if venv module is available first
+    if ! python3 -c "import venv" 2>/dev/null; then
+        echo "Error: Python venv module is not available."
+        if [[ "$OS" == "linux" ]]; then
+            PYTHON_VERSION=$(python3 --version 2>&1 | awk '{print $2}' | cut -d'.' -f1,2)
+            echo ""
+            echo "On Debian/Ubuntu systems, you need to install the python3-venv package:"
+            echo "  sudo apt install python${PYTHON_VERSION}-venv"
+            echo ""
+            echo "After installing, run this script again."
+        elif [[ "$OS" == "macos" ]]; then
+            echo ""
+            echo "On macOS, ensure Python development tools are installed."
+            echo "You may need to install Xcode command line tools:"
+            echo "  xcode-select --install"
+        fi
+        exit 1
+    fi
+    
+    # Check if venv exists and is valid
+    if [ -d "venv" ]; then
+        if [ -f "venv/bin/activate" ] || [ -f "venv/Scripts/activate" ]; then
+            echo "Virtual environment already exists. Skipping creation."
+        else
+            echo "Broken virtual environment detected. Removing and recreating..."
+            rm -rf venv
+            if ! python3 -m venv venv 2>&1; then
+                echo ""
+                echo "Error: Failed to recreate virtual environment."
+                if [[ "$OS" == "linux" ]]; then
+                    PYTHON_VERSION=$(python3 --version 2>&1 | awk '{print $2}' | cut -d'.' -f1,2)
+                    echo "On Debian/Ubuntu systems, you may need to install python3-venv:"
+                    echo "  sudo apt install python${PYTHON_VERSION}-venv"
+                fi
+                exit 1
+            fi
+            echo "Virtual environment recreated successfully."
+        fi
+    else
+        # Create new venv (venv module check already done above)
+        if ! python3 -m venv venv 2>&1; then
+            echo ""
+            echo "Error: Failed to create virtual environment."
+            if [[ "$OS" == "linux" ]]; then
+                PYTHON_VERSION=$(python3 --version 2>&1 | awk '{print $2}' | cut -d'.' -f1,2)
+                echo "On Debian/Ubuntu systems, you may need to install python3-venv:"
+                echo "  sudo apt install python${PYTHON_VERSION}-venv"
+            elif [[ "$OS" == "macos" ]]; then
+                echo "On macOS, ensure Python development tools are installed."
+            fi
+            exit 1
+        fi
+        echo "Virtual environment created successfully."
+    fi
+
+    # Activate virtual environment
+    echo ""
+    echo "Activating virtual environment..."
+    if [[ "$OSTYPE" == "darwin"* ]] || [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        source venv/bin/activate
+    else
+        source venv/Scripts/activate
+    fi
+    PYTHON_CMD="python"
+    PIP_CMD="pip"
+fi
 
 # Upgrade pip
 echo ""
 echo "Upgrading pip..."
-pip install --upgrade pip setuptools wheel
+$PIP_CMD install --upgrade pip setuptools wheel
 
 # Install requirements
 echo ""
 echo "Installing Python packages from requirements.txt..."
-pip install -r requirements.txt
+$PIP_CMD install -r requirements.txt
 
 # Test installation
 echo ""
 echo "Testing installation..."
-python3 -c "
+$PYTHON_CMD -c "
 import sys
 try:
     import pandas as pd
@@ -109,13 +216,28 @@ echo "========================================="
 echo "Setup complete!"
 echo "========================================="
 echo ""
-echo "To use this environment:"
-echo "  source venv/bin/activate"
-echo ""
-echo "To run the pipeline:"
-echo "  nextflow run main.nf --species mouse --input_data data/mouse_full_data.csv"
-echo ""
-echo "To deactivate the environment:"
-echo "  deactivate"
+if [ "$USE_CONDA" = true ]; then
+    echo "To use this environment:"
+    echo "  conda activate nf_phospho_pipeline"
+    echo ""
+    echo "To run the pipeline:"
+    echo "  nextflow run main.nf --species_list mouse --input_data data/mouse_test_data.csv"
+    echo ""
+    echo "To deactivate the environment:"
+    echo "  conda deactivate"
+else
+    echo "To use this environment:"
+    if [[ "$OSTYPE" == "darwin"* ]] || [[ "$OSTYPE" == "linux-gnu"* ]]; then
+        echo "  source venv/bin/activate"
+    else
+        echo "  source venv/Scripts/activate"
+    fi
+    echo ""
+    echo "To run the pipeline:"
+    echo "  nextflow run main.nf --species_list mouse --input_data data/mouse_test_data.csv"
+    echo ""
+    echo "To deactivate the environment:"
+    echo "  deactivate"
+fi
 echo ""
 

@@ -34,3 +34,6 @@
 2025-11-13 11:05:27	12.1s	serene_lamport	ERR	aec48c62fffd2f2537e8c2db5b969e9c	c37b5c13-1a89-4541-9ec3-22f6a1f65aee	nextflow run main.nf -resume
 2025-11-13 11:07:27	10s	berserk_gates	ERR	aec48c62fffd2f2537e8c2db5b969e9c	c7da4184-8319-492c-8cf7-e6febaf1ee60	nextflow run main.nf
 2025-11-13 11:15:19	12.9s	pensive_mayer	ERR	553651b2378bf9891c5cd28870e50034	a37ad4f9-ce26-43b2-8bc3-513986c8a67e	nextflow run main.nf
+2025-11-13 11:31:23	2.7s	big_visvesvaraya	ERR	553651b2378bf9891c5cd28870e50034	3c9d30b2-05c6-408f-8c30-1082e43254b2	nextflow run main.nf
+2025-11-13 11:41:31	5m 37s	small_edison	ERR	a46a23eb0deeda445b5ff2bac75addf1	5652595a-4536-4dc7-acbe-cceb82bf9fbd	nextflow run main.nf
+2025-11-13 12:24:28	8m 40s	friendly_bohr	OK	9ce3dd2680a7c54ec8b66cc3a9f0d574	5652595a-4536-4dc7-acbe-cceb82bf9fbd	nextflow run main.nf -resume

@@ -15,6 +15,8 @@ This Nextflow pipeline automates the complete phosphorylation data analysis work
 
 ## Features
 
+- **Cross-Platform Compatibility**: Works on both Linux and macOS systems
+- **Flexible Python Environment**: Supports venv, conda, or system Python
 - **Workflow Orchestration**: Automatically manages dependencies between pipeline steps
 - **Error Handling**: Built-in retry logic and error reporting
 - **Reproducibility**: Tracks all pipeline parameters and versions
@@ -45,6 +47,36 @@ This Nextflow pipeline automates the complete phosphorylation data analysis work
    - BLAST databases will be created automatically in `data/blast_dbs/` during pipeline execution
    - The data directory can be specified with `--data_dir` parameter (default: `NF_pipeline/data`)
 
+## Portability
+
+This pipeline is designed to be portable across different systems:
+
+- **Linux and macOS**: Fully tested and supported on both platforms
+- **Python Environment Detection**: Automatically detects and uses:
+  - Virtual environment (`venv/`) if present
+  - Conda environment (`nf_phospho_pipeline`) if available
+  - System Python as fallback
+- **Path Handling**: Uses relative paths and `projectDir` for portability
+- **No Hardcoded Paths**: All paths are relative to the project directory
+
+### Python Environment Options
+
+The pipeline supports multiple Python environment setups:
+
+1. **Virtual Environment (venv)** - Recommended for most users
+   - Created automatically by `setup_environment.sh`
+   - Located at `venv/` in the project directory
+   - Works identically on Linux and macOS
+
+2. **Conda Environment** - Alternative option
+   - Use `environment.yml` to create: `conda env create -f environment.yml`
+   - Environment name: `nf_phospho_pipeline`
+   - Specify with: `--python_env conda` or let auto-detection handle it
+
+3. **System Python** - Fallback option
+   - Uses system `python3` if no venv/conda found
+   - Requires packages to be installed system-wide
+
 ## Environment Setup
 
 ### Quick Setup (Recommended)
@@ -60,10 +92,19 @@ chmod +x setup_environment.sh
 ```
 
 This will:
-- Create a Python virtual environment (`venv/`)
+- Detect your operating system (Linux or macOS)
+- Optionally create a Conda environment if Conda is available
+- Create a Python virtual environment (`venv/`) if not using Conda
+- Handle broken/incomplete virtual environments automatically
 - Install all required packages with specific versions
 - Test the installation
 - Check for BLAST+ installation
+
+**Note**: On Linux systems, if you encounter venv creation errors, you may need to install the `python3-venv` package:
+```bash
+# Ubuntu/Debian
+sudo apt install python3.12-venv  # Replace 3.12 with your Python version
+```
 
 ### Manual Setup
 
@@ -181,14 +222,30 @@ nextflow run main.nf \
 
 ### Required Parameters
 
-- `--species`: Species to process (`mouse` or `rat`)
-- `--input_data`: Path to input data file (CSV format)
+- `--species_list`: List of species to process (default: `['mouse', 'rat']`)
+- Input files are automatically detected from `data/{species}_test_data.csv`
 
 ### Optional Parameters
 
-- `--data_dir`: Path to data directory containing `mouse_blast/`, `rat_blast/`, and `blast_dbs/` subdirectories (default: `NF_pipeline/data`)
-- `--output_dir`: Output directory for results (default: `results`)
+- `--outdir`: Output directory for results (default: `results`)
+- `--python_env`: Python environment type - `auto`, `venv`, or `conda` (default: `auto`)
+- `--python_exec`: Explicit path to Python executable (overrides auto-detection)
 - `--help`: Show help message
+
+### Python Environment Parameters
+
+The pipeline automatically detects your Python environment, but you can override this:
+
+```bash
+# Force use of conda environment
+nextflow run main.nf --python_env conda --species_list mouse
+
+# Specify explicit Python path
+nextflow run main.nf --python_exec /path/to/python --species_list mouse
+
+# Use auto-detection (default)
+nextflow run main.nf --python_env auto --species_list mouse
+```
 
 ## Pipeline Workflow
 
@@ -342,19 +399,32 @@ firefox results/pipeline_report.html
    - All scripts are included in `NF_pipeline/scripts/` directory
    - Ensure the `scripts/` directory exists and contains all required Python scripts
 
-2. **BLAST Databases Missing**
+2. **Python Environment Not Detected**
+   - The pipeline auto-detects Python environments, but if it fails:
+     - Check that `venv/bin/python3` exists (if using venv)
+     - Check that conda environment exists: `conda env list`
+     - Specify explicitly: `--python_exec /path/to/python`
+   - On Linux, if venv creation fails, install: `sudo apt install python3-venv`
+
+3. **BLAST Databases Missing**
    - The pipeline automatically creates BLAST databases from FASTA files in `mouse_blast/` and `rat_blast/` directories
    - Ensure full FASTA files exist in `data/mouse_blast/` and `data/rat_blast/` (uniprotkb_taxonomy_id_*.fasta)
    - Ensure paper FASTA files exist in `data/mouse_blast/` and `data/rat_blast/` (UniprotKB_mouse_paper.fasta and UniprotKB_rat_paper.fasta)
    - Databases are created automatically during the CREATE_BLAST_DB process
 
-3. **Memory Issues**
+4. **Memory Issues**
    - Adjust memory limits in `nextflow.config`
    - Use `-with-report` to identify memory-intensive processes
 
-4. **Permission Errors**
+5. **Permission Errors**
    - Ensure write permissions for output directory
    - Check Python script execution permissions
+
+6. **Cross-Platform Issues**
+   - If moving between Linux and macOS, ensure:
+     - Python environment is recreated on the new system
+     - File permissions are correct (scripts should be executable)
+     - Line endings are Unix-style (LF, not CRLF)
 
 ### Debug Mode
 
