@@ -8,39 +8,8 @@
 // Parameters (can be overridden in nextflow.config or command line)
 params.species_list = ['mouse', 'rat']  // List of species to process
 params.outdir = "${projectDir}/results"
-params.python_env = 'auto'  // 'auto', 'venv', or 'conda'
-params.python_exec = null  // Optional: explicit path to Python executable
 
-// Function to detect Python executable
-// Works on both Linux and macOS, supports venv and conda
-// This will be evaluated in each process context
-def getPythonExec() {
-    // If explicitly set, use it
-    if (params.python_exec) {
-        return params.python_exec
-    }
-    
-    // Try venv first (most common)
-    def venvPython3 = new File("${projectDir}/venv/bin/python3")
-    def venvPython = new File("${projectDir}/venv/bin/python")
-    if (venvPython3.exists()) {
-        return venvPython3.toString()
-    } else if (venvPython.exists()) {
-        return venvPython.toString()
-    }
-    
-    // Try conda environment if specified or auto
-    if (params.python_env == 'conda' || params.python_env == 'auto') {
-        // Return conda command - will be checked at runtime
-        return "conda run -n nf_phospho_pipeline python"
-    }
-    
-    // Fall back to system python3 (works on both Linux and macOS)
-    return "python3"
-}
-
-// Get Python executable - will be resolved in process scripts
-pythonExec = getPythonExec()
+pythonExec = "${projectDir}/venv/bin/python3"
 
 // Create Results Directory
 new File(params.outdir).mkdirs()
@@ -155,31 +124,21 @@ workflow {
         tuple(species, file("${projectDir}/data/${species}_test_data.csv"))
     }
     
-    // Step 1: Clean data (parallel for each species)
-    // Input: tuple(species, file) -> Output: tuple(species, cleaned_data.csv)
     clean_data(input_files)
     
-    // Output already includes species, so no need to re-pair
     cleaned_with_species = clean_data.out.cleaned_data
     
-    // Step 2: Paper BLAST (parallel for each species)
     paper_blast(cleaned_with_species)
     
-    // Output already includes species
     paper_blast_with_species = paper_blast.out.paper_blast_results
-    
-    // Step 3: Total BLAST (parallel for each species)
+
     total_blast(paper_blast_with_species)
     
-    // Output already includes species
     total_blast_with_species = total_blast.out.total_blast_results
     
-    // Step 4: Align sequences (parallel for each species)
     align_sequences(total_blast_with_species)
     
-    // Output already includes species
     aligned_with_species = align_sequences.out.aligned_sequences
     
-    // Step 5: Generate visualizations
    visualization(aligned_with_species)
 }
