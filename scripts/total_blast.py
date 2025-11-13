@@ -178,11 +178,35 @@ def create_blast_database(fasta_path: str, db_path: str) -> bool:
     logger.info(f"Creating BLAST database from {fasta_path}")
     
     try:
-        cmd = ['makeblastdb', '-in', fasta_path, '-dbtype', 'prot', '-out', db_path]
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        # Get absolute path for FASTA to ensure it exists
+        abs_fasta_path = os.path.abspath(fasta_path)
+        
+        # Ensure FASTA file exists
+        if not os.path.exists(abs_fasta_path):
+            logger.error(f"FASTA file not found: {abs_fasta_path}")
+            return False
+        
+        # Use relative path for database output to avoid BLAST issues with spaces in absolute paths
+        # The db_path is already relative to current working directory
+        # Ensure the directory for db_path exists (if it has a directory component)
+        db_dir = os.path.dirname(db_path) if os.path.dirname(db_path) else '.'
+        if db_dir != '.' and not os.path.exists(db_dir):
+            os.makedirs(db_dir, exist_ok=True)
+        
+        # Use absolute path for input (FASTA), but relative path for output (database)
+        # This avoids BLAST parsing issues with spaces in absolute output paths
+        cmd = ['makeblastdb', '-in', abs_fasta_path, '-dbtype', 'prot', '-out', db_path]
+        
+        logger.info(f"FASTA path (absolute): {abs_fasta_path}")
+        logger.info(f"DB path (relative): {db_path}")
+        
+        result = subprocess.run(cmd, capture_output=True, text=True, check=False, cwd=os.getcwd())
         
         if result.returncode != 0:
-            logger.error(f"makeblastdb failed: {result.stderr}")
+            logger.error(f"makeblastdb failed with return code {result.returncode}")
+            logger.error(f"stderr: {result.stderr}")
+            if result.stdout:
+                logger.error(f"stdout: {result.stdout}")
             return False
         
         logger.info("BLAST database created successfully")
@@ -190,6 +214,8 @@ def create_blast_database(fasta_path: str, db_path: str) -> bool:
         
     except Exception as e:
         logger.error(f"Failed to create BLAST database: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         return False
 
 
@@ -207,9 +233,15 @@ def blast_sequence(sequence: str, db_path: str) -> List[Dict[str, Any]]:
         with tempfile.NamedTemporaryFile(mode='w', suffix='.xml', delete=False) as f:
             temp_output = f.name
         
+        # Use relative path for database to match how it was created
+        # This avoids BLAST issues with spaces in absolute paths
+        # Use absolute paths for temp files since they're in system temp directory
+        abs_temp_input = os.path.abspath(temp_input)
+        abs_temp_output = os.path.abspath(temp_output)
+        
         # Run BLAST with parameters optimized for short sequences
         cmd = [
-            'blastp', '-query', temp_input, '-db', db_path, '-out', temp_output,
+            'blastp', '-query', abs_temp_input, '-db', db_path, '-out', abs_temp_output,
             '-outfmt', '5', '-evalue', '1000', '-word_size', '2',
             '-gapopen', '9', '-gapextend', '1', '-matrix', 'BLOSUM62',
             '-comp_based_stats', '0', '-max_target_seqs', '50'

@@ -29,3 +29,8 @@
 2025-11-10 16:52:55	8m 23s	dreamy_goldstine	ERR	733c745f589a88bf215351bf87a7f80d	8ed25c37-9dfa-43c1-8595-924d7bb34cad	nextflow run main.nf -resume
 2025-11-10 17:02:30	2.4s	admiring_easley	ERR	6a2b5cb53c70a408b37cffd9f98f3af7	8ed25c37-9dfa-43c1-8595-924d7bb34cad	nextflow run main.nf -resume
 2025-11-10 17:03:44	7.6s	mad_lamport	OK	aaded9c1d624b24d7420ae9ff918fe46	8ed25c37-9dfa-43c1-8595-924d7bb34cad	nextflow run main.nf -resume
+2025-11-13 11:02:40	4.4s	thirsty_poisson	ERR	b77d720a339e8efefbfa1d4968867ba5	8f3a1366-a904-437a-b5cf-613810e296cf	nextflow run main.nf
+2025-11-13 11:04:03	19.5s	tender_jones	ERR	95b3ec66516782c4cfc5a428eb154073	c37b5c13-1a89-4541-9ec3-22f6a1f65aee	nextflow run main.nf
+2025-11-13 11:05:27	12.1s	serene_lamport	ERR	aec48c62fffd2f2537e8c2db5b969e9c	c37b5c13-1a89-4541-9ec3-22f6a1f65aee	nextflow run main.nf -resume
+2025-11-13 11:07:27	10s	berserk_gates	ERR	aec48c62fffd2f2537e8c2db5b969e9c	c7da4184-8319-492c-8cf7-e6febaf1ee60	nextflow run main.nf
+2025-11-13 11:15:19	12.9s	pensive_mayer	ERR	553651b2378bf9891c5cd28870e50034	a37ad4f9-ce26-43b2-8bc3-513986c8a67e	nextflow run main.nf

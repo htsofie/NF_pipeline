@@ -5,9 +5,8 @@
 
 set -e  # Exit on any error
 
-echo "========================================="
 echo "Nextflow Phosphorylation Pipeline Setup"
-echo "========================================="
+
 
 # Check if Python 3 is available
 if ! command -v python3 &> /dev/null; then
@@ -75,16 +74,16 @@ try:
     import numpy as np
     import matplotlib.pyplot as plt
     import yaml
+    import Bio
     from Bio import SeqIO
     from Bio.Align import PairwiseAligner
     from Bio.Blast import NCBIXML
-    
     print('✓ All packages imported successfully!')
     print(f'✓ Python version: {sys.version}')
     print(f'✓ pandas version: {pd.__version__}')
     print(f'✓ numpy version: {np.__version__}')
     print(f'✓ matplotlib version: {plt.matplotlib.__version__}')
-    print(f'✓ biopython version: {SeqIO.__version__}')
+    print(f'✓ biopython version: {Bio.__version__}')
     print('✓ Environment setup complete!')
 except ImportError as e:
     print(f'✗ Import error: {e}')

@@ -23,7 +23,20 @@ process clean_data {
 
     script:
     """
-    python3 ${projectDir}/scripts/clean_data.py --input ${input_csv} --output cleaned_data.csv --species ${species}
+    # Set environment variable for project directory
+    export NF_PIPELINE_DIR="${projectDir}"
+    
+    # Create symlinks to project directories so scripts can use relative paths
+    # This allows scripts to use relative paths like 'data/' and 'configs/' 
+    # regardless of where the project is located
+    if [ ! -e data ]; then
+        ln -sf "${projectDir}/data" data
+    fi
+    if [ ! -e configs ]; then
+        ln -sf "${projectDir}/configs" configs
+    fi
+    
+    "${projectDir}/venv/bin/python3" "${projectDir}/scripts/clean_data.py" --input ${input_csv} --output cleaned_data.csv --species ${species}
     """
 }
 
@@ -39,13 +52,20 @@ process paper_blast {
 
     script:
     """
-    # Create symlinks to data directories so scripts can find FASTA files and blast_dbs
-    mkdir -p data
-    ln -sf ${projectDir}/data/blast_dbs data/blast_dbs || true
-    ln -sf ${projectDir}/data/mouse_paper_blast data/mouse_paper_blast || true
-    ln -sf ${projectDir}/data/rat_paper_blast data/rat_paper_blast || true
+    # Set environment variable for project directory
+    export NF_PIPELINE_DIR="${projectDir}"
     
-    python3 ${projectDir}/scripts/paper_blast.py --input ${cleaned_data} --output paper_blast_results.csv --species ${species}
+    # Create symlinks to project directories so scripts can use relative paths
+    # This allows scripts to use relative paths like 'data/' and 'configs/' 
+    # regardless of where the project is located
+    if [ ! -e data ]; then
+        ln -sf "${projectDir}/data" data
+    fi
+    if [ ! -e configs ]; then
+        ln -sf "${projectDir}/configs" configs
+    fi
+    
+    "${projectDir}/venv/bin/python3" "${projectDir}/scripts/paper_blast.py" --input ${cleaned_data} --output paper_blast_results.csv --species ${species}
     """
 }
 
@@ -61,13 +81,20 @@ process total_blast {
 
     script:
     """
-    # Create symlinks to data directories so scripts can find FASTA files and blast_dbs
-    mkdir -p data
-    ln -sf ${projectDir}/data/blast_dbs data/blast_dbs || true
-    ln -sf ${projectDir}/data/mouse_total_blast data/mouse_total_blast || true
-    ln -sf ${projectDir}/data/rat_total_blast data/rat_total_blast || true
+    # Set environment variable for project directory
+    export NF_PIPELINE_DIR="${projectDir}"
     
-    python3 ${projectDir}/scripts/total_blast.py --input ${paper_blast_results} --output total_blast_results.csv --species ${species}
+    # Create symlinks to project directories so scripts can use relative paths
+    # This allows scripts to use relative paths like 'data/' and 'configs/' 
+    # regardless of where the project is located
+    if [ ! -e data ]; then
+        ln -sf "${projectDir}/data" data
+    fi
+    if [ ! -e configs ]; then
+        ln -sf "${projectDir}/configs" configs
+    fi
+    
+    "${projectDir}/venv/bin/python3" "${projectDir}/scripts/total_blast.py" --input ${paper_blast_results} --output total_blast_results.csv --species ${species}
     """
 }
 
@@ -83,46 +110,49 @@ process align_sequences {
 
     script:
     """
-    python3 ${projectDir}/scripts/align_to_full_seq.py --input ${total_blast_results} --output aligned_sequences.csv --species ${species}
+    # Set environment variable for project directory
+    export NF_PIPELINE_DIR="${projectDir}"
+    
+    # Create symlinks to project directories so scripts can use relative paths
+    # This allows scripts to use relative paths like 'data/' and 'configs/' 
+    # regardless of where the project is located
+    if [ ! -e data ]; then
+        ln -sf "${projectDir}/data" data
+    fi
+    if [ ! -e configs ]; then
+        ln -sf "${projectDir}/configs" configs
+    fi
+    
+    "${projectDir}/venv/bin/python3" "${projectDir}/scripts/align_to_full_seq.py" --input ${total_blast_results} --output aligned_sequences.csv --species ${species}
     """
 }
 
-// Generate Visualizations (single species)
-process generate_visualizations {
+// Generate Visualizations
+process visualization {
     publishDir "${params.outdir}/${species}", mode: 'copy'
 
     input:
     tuple val(species), path(aligned_sequences)
     
     output:
-    path "*.{png,pdf}", emit: visualizations
+    path "*.{png}", emit: visualization
 
     script:
     """
-    python3 ${projectDir}/scripts/generate_visualizations.py --input ${aligned_sequences} --output_dir . --species ${species}
-    """
-}
-
-// Generate Comparison Visualizations (both species)
-process generate_comparison_visualizations {
-    publishDir "${params.outdir}/comparison", mode: 'copy'
-
-    input:
-    path mouse_aligned, stageAs: "mouse_aligned.csv"
-    path rat_aligned, stageAs: "rat_aligned.csv"
+    # Set environment variable for project directory
+    export NF_PIPELINE_DIR="${projectDir}"
     
-    output:
-    path "*.{png,pdf}", emit: comparison_visualizations
-
-    script:
-    """
-    # Generate comparison plot with both species
-    python3 ${projectDir}/scripts/generate_visualizations.py \\
-        --input mouse_aligned.csv \\
-        --species mouse \\
-        --comparison_input rat_aligned.csv \\
-        --comparison_species rat \\
-        --output_dir .
+    # Create symlinks to project directories so scripts can use relative paths
+    # This allows scripts to use relative paths like 'data/' and 'configs/' 
+    # regardless of where the project is located
+    if [ ! -e data ]; then
+        ln -sf "${projectDir}/data" data
+    fi
+    if [ ! -e configs ]; then
+        ln -sf "${projectDir}/configs" configs
+    fi
+    
+    "${projectDir}/venv/bin/python3" "${projectDir}/scripts/visualization.py" --input ${aligned_sequences} --output_dir . --species ${species}
     """
 }
 
@@ -161,19 +191,6 @@ workflow {
     // Output already includes species
     aligned_with_species = align_sequences.out.aligned_sequences
     
-    // Step 5: Generate individual visualizations (parallel for each species)
-    generate_visualizations(aligned_with_species)
-    
-    // Step 6: Generate comparison visualizations (after both species complete)
-    // aligned_with_species has tuples of (species, file)
-    // Filter to get mouse and rat separately
-    mouse_aligned = aligned_with_species
-        .filter { species, file -> species == 'mouse' }
-        .map { species, file -> file }
-    
-    rat_aligned = aligned_with_species
-        .filter { species, file -> species == 'rat' }
-        .map { species, file -> file }
-    
-    generate_comparison_visualizations(mouse_aligned, rat_aligned)
+    // Step 5: Generate visualizations
+   visualization(aligned_with_species)
 }
