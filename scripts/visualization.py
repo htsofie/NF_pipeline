@@ -270,6 +270,7 @@ def main():
     parser.add_argument('-i', '--input', required=True, help='Input CSV file (aligned data)')
     parser.add_argument('-s', '--species', required=True, choices=['mouse', 'rat'], help='Species name')
     parser.add_argument('-o', '--output_dir', required=True, help='Output directory for plots')
+    parser.add_argument('--project_dir', help='Project root directory (for consistency with other scripts)')
     
     args = parser.parse_args()
     

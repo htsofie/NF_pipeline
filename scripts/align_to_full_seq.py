@@ -751,6 +751,7 @@ def main():
     parser.add_argument('--input', '-i', required=True, help='Path to input CSV file (with full sequences)')
     parser.add_argument('--species', '-s', required=True, choices=['mouse', 'rat'], help='Species name')
     parser.add_argument('--output', '-o', help='Path to output CSV file (default: data/processed/{species}/input_filename_aligned.csv)')
+    parser.add_argument('--project_dir', help='Project root directory (for default output path)')
     
     args = parser.parse_args()
     
@@ -758,7 +759,11 @@ def main():
     if args.output:
         output_path = args.output
     else:
-        output_dir = os.path.join('data', 'processed', args.species)
+        # Use absolute path if project_dir is provided, otherwise use relative path
+        if args.project_dir:
+            output_dir = os.path.join(args.project_dir, 'data', 'processed', args.species)
+        else:
+            output_dir = os.path.join('data', 'processed', args.species)
         os.makedirs(output_dir, exist_ok=True)
         input_filename = os.path.basename(args.input)
         base_name = os.path.splitext(input_filename)[0]

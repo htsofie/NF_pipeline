@@ -57,20 +57,11 @@ process clean_data {
 
     script:
     """
-    # Set environment variable for project directory
-    export NF_PIPELINE_DIR="${projectDir}"
-    
-    # Create symlinks to project directories so scripts can use relative paths
-    # This allows scripts to use relative paths like 'data/' and 'configs/' 
-    # regardless of where the project is located
-    if [ ! -e data ]; then
-        ln -sf "${projectDir}/data" data
-    fi
-    if [ ! -e configs ]; then
-        ln -sf "${projectDir}/configs" configs
-    fi
-    
-    "${pythonExec}" "${projectDir}/scripts/clean_data.py" --input ${input_csv} --output cleaned_data.csv --species ${species}
+    "${pythonExec}" "${projectDir}/scripts/clean_data.py" \
+        --input ${input_csv} \
+        --output cleaned_data.csv \
+        --species ${species} \
+        --project_dir "${projectDir}"
     """
 }
 
@@ -86,20 +77,11 @@ process paper_blast {
 
     script:
     """
-    # Set environment variable for project directory
-    export NF_PIPELINE_DIR="${projectDir}"
-    
-    # Create symlinks to project directories so scripts can use relative paths
-    # This allows scripts to use relative paths like 'data/' and 'configs/' 
-    # regardless of where the project is located
-    if [ ! -e data ]; then
-        ln -sf "${projectDir}/data" data
-    fi
-    if [ ! -e configs ]; then
-        ln -sf "${projectDir}/configs" configs
-    fi
-    
-    "${pythonExec}" "${projectDir}/scripts/paper_blast.py" --input ${cleaned_data} --output paper_blast_results.csv --species ${species}
+    "${pythonExec}" "${projectDir}/scripts/paper_blast.py" \
+        --input ${cleaned_data} \
+        --output paper_blast_results.csv \
+        --species ${species} \
+        --project_dir "${projectDir}"
     """
 }
 
@@ -115,20 +97,11 @@ process total_blast {
 
     script:
     """
-    # Set environment variable for project directory
-    export NF_PIPELINE_DIR="${projectDir}"
-    
-    # Create symlinks to project directories so scripts can use relative paths
-    # This allows scripts to use relative paths like 'data/' and 'configs/' 
-    # regardless of where the project is located
-    if [ ! -e data ]; then
-        ln -sf "${projectDir}/data" data
-    fi
-    if [ ! -e configs ]; then
-        ln -sf "${projectDir}/configs" configs
-    fi
-    
-    "${pythonExec}" "${projectDir}/scripts/total_blast.py" --input ${paper_blast_results} --output total_blast_results.csv --species ${species}
+    "${pythonExec}" "${projectDir}/scripts/total_blast.py" \
+        --input ${paper_blast_results} \
+        --output total_blast_results.csv \
+        --species ${species} \
+        --project_dir "${projectDir}"
     """
 }
 
@@ -144,20 +117,11 @@ process align_sequences {
 
     script:
     """
-    # Set environment variable for project directory
-    export NF_PIPELINE_DIR="${projectDir}"
-    
-    # Create symlinks to project directories so scripts can use relative paths
-    # This allows scripts to use relative paths like 'data/' and 'configs/' 
-    # regardless of where the project is located
-    if [ ! -e data ]; then
-        ln -sf "${projectDir}/data" data
-    fi
-    if [ ! -e configs ]; then
-        ln -sf "${projectDir}/configs" configs
-    fi
-    
-    "${pythonExec}" "${projectDir}/scripts/align_to_full_seq.py" --input ${total_blast_results} --output aligned_sequences.csv --species ${species}
+    "${pythonExec}" "${projectDir}/scripts/align_to_full_seq.py" \
+        --input ${total_blast_results} \
+        --output aligned_sequences.csv \
+        --species ${species} \
+        --project_dir "${projectDir}"
     """
 }
 
@@ -173,20 +137,11 @@ process visualization {
 
     script:
     """
-    # Set environment variable for project directory
-    export NF_PIPELINE_DIR="${projectDir}"
-    
-    # Create symlinks to project directories so scripts can use relative paths
-    # This allows scripts to use relative paths like 'data/' and 'configs/' 
-    # regardless of where the project is located
-    if [ ! -e data ]; then
-        ln -sf "${projectDir}/data" data
-    fi
-    if [ ! -e configs ]; then
-        ln -sf "${projectDir}/configs" configs
-    fi
-    
-    "${pythonExec}" "${projectDir}/scripts/visualization.py" --input ${aligned_sequences} --output_dir . --species ${species}
+    "${pythonExec}" "${projectDir}/scripts/visualization.py" \
+        --input ${aligned_sequences} \
+        --output_dir . \
+        --species ${species} \
+        --project_dir "${projectDir}"
     """
 }
 

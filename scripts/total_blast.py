@@ -48,14 +48,18 @@ SPECIES_MAPPING = {
 }
 
 
-def load_full_database(species: str) -> Dict[str, Dict[str, Any]]:
+def load_full_database(species: str, project_dir: Optional[str] = None) -> Dict[str, Dict[str, Any]]:
     """Load the full UniProtKB species database FASTA file and parse into dictionary."""
     if species not in ['mouse', 'rat']:
         raise ValueError(f"Unsupported species: {species}")
     
     # FASTA files are in data/{species}_total_blast/ directory
-    # Look for any .fasta file in that directory
-    total_dir = f"data/{species}_total_blast"
+    # Use absolute path if project_dir is provided, otherwise use relative path
+    if project_dir:
+        total_dir = os.path.join(project_dir, 'data', f'{species}_total_blast')
+    else:
+        total_dir = f"data/{species}_total_blast"
+    
     if not os.path.exists(total_dir):
         raise FileNotFoundError(f"Total database directory not found: {total_dir}")
     
@@ -371,6 +375,7 @@ def main():
     parser.add_argument('--input', '-i', required=True, help='Input CSV file path')
     parser.add_argument('--species', '-s', required=True, choices=['rat', 'mouse'], help='Species name')
     parser.add_argument('--output', '-o', help='Output CSV file path (optional)')
+    parser.add_argument('--project_dir', help='Project root directory (for finding data directories)')
     
     args = parser.parse_args()
     
@@ -395,15 +400,21 @@ def main():
     
     # Load full UniProtKB database
     try:
-        database = load_full_database(args.species)
+        database = load_full_database(args.species, args.project_dir)
     except Exception as e:
         logger.error(f"Failed to load full UniProtKB database: {e}")
         return
     
     # Create BLAST database
     # FASTA files are in data/{species}_total_blast/
-    # Create database in current directory (work directory) to avoid symlink issues
-    total_dir = f"data/{args.species}_total_blast"
+    # Use absolute path if project_dir is provided, otherwise use relative path
+    if args.project_dir:
+        total_dir = os.path.join(args.project_dir, 'data', f'{args.species}_total_blast')
+        existing_db_path = os.path.join(args.project_dir, 'data', 'blast_dbs', f'{args.species}_full_blast')
+    else:
+        total_dir = f"data/{args.species}_total_blast"
+        existing_db_path = f"data/blast_dbs/{args.species}_full_blast"
+    
     db_path = f"{args.species}_full_blast"  # Create in current directory, not in data/blast_dbs/
     
     # Find FASTA file in the total_blast directory
@@ -418,20 +429,10 @@ def main():
         logger.error(f"Multiple FASTA files found in {total_dir}. Expected exactly one.")
         return
     fasta_path = os.path.join(total_dir, fasta_files[0])
-    
-    # Check if database already exists in the symlinked blast_dbs directory
-    existing_db_path = f"data/blast_dbs/{args.species}_full_blast"
     if os.path.exists(f"{existing_db_path}.phr"):
         logger.info(f"Using existing BLAST database: {existing_db_path}")
-        # Create symlink to existing database in current directory
-        for ext in ['.phr', '.pin', '.psq', '.pog', '.psi', '.psd', '.pss']:
-            src = f"{existing_db_path}{ext}"
-            dst = f"{db_path}{ext}"
-            if os.path.exists(src):
-                try:
-                    os.symlink(os.path.abspath(src), dst)
-                except (FileExistsError, OSError):
-                    pass
+        # Use absolute path to existing database directly (no symlinks)
+        db_path = os.path.abspath(existing_db_path)
     else:
         # Create new database in current directory
         if not os.path.exists(f"{db_path}.phr"):

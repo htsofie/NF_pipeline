@@ -295,6 +295,7 @@ def main() -> int:
     # Output options
     parser.add_argument('--output', '-o', help='Path to output CSV file (required when using --input)')
     parser.add_argument('--species', '-s', choices=['mouse', 'rat'], help='Species name (required when using --input)')
+    parser.add_argument('--project_dir', help='Project root directory (for finding configs)')
     
     # Legacy options for config-based processing
     parser.add_argument('--mode', '-m', choices=['sample', 'full'], default='sample', help='Input mode: sample (CSV) or full (Parquet)')
@@ -319,7 +320,12 @@ def main() -> int:
         output_path = args.output
         
         # Try to load default config for the species (optional)
-        config_path = f'configs/{species}.yaml'
+        # Use absolute path if project_dir is provided, otherwise use relative path
+        if args.project_dir:
+            config_path = os.path.join(args.project_dir, 'configs', f'{species}.yaml')
+        else:
+            config_path = f'configs/{species}.yaml'
+        
         if os.path.exists(config_path):
             config = load_config(config_path)
         else:
