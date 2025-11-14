@@ -1,8 +1,16 @@
-# Phosphorylation Site Analysis Pipeline - Standard Operating Procedure
+# Phosphorylation Site Mapping and Analysis Across Multi Tissues and Species - Standard Operating Procedure
 
 ## Workflow Rationale
 
-Phosphorylation site analysis requires multiple computational steps: data cleaning, BLAST database searches against curated and comprehensive protein databases, sequence alignment, and visualization. Manual execution of these steps is error-prone, time-consuming, and difficult to reproduce. This Nextflow pipeline automates the complete workflow, ensuring:
+In order to make use of phosphorylation data from older experiments, you need to confront the issue of mapping old protein IDs and their phosphorylation sites to the current updated sets of protein IDs. Furthermore, lots of old data isn't even in Uniprot accession ID form and in a form of ID such as IPI that has long been extinct. In order to map phosphorylation sites to current IDs you have to go through multiple steps: 
+
+1. Data cleaning - Need to remove any sites that are unlocalized, or rows that are not fully complete.
+2. Paper BLAST - Search the phosphorylation window against a FASTA file of proteins published in that paper (which can be extracted from uniprot) to identify possible protein matches and record the type of ID they are (either swissprot (reviewed) or tremble (unreviewed)). 
+3. Total BLAST - Search any unmatched sequences against a FASTA file of all proteins published in for that species (can download taxonomy specific FASTA files from uniprot).
+4. Sequence Alignment and ID matching - Align the phosphorylation sequence window to the full sequence of possible proteins and evaluate match to select best one. This would exact alignments, followed by any swissprot identified match first, then the rest evauluated on distance of new aligned position from old reported position. 
+5. Visualization - Generate graphs to visualize distribution of phosphorylation sites between types and tissues.
+   
+Manual execution of these steps is error-prone, time-consuming, and difficult to reproduce. This Nextflow pipeline automates the complete workflow, ensuring:
 
 - **Reproducibility**: All steps are executed in a consistent order with tracked parameters
 - **Efficiency**: Parallel processing of multiple species and automatic dependency management
@@ -57,6 +65,8 @@ Run the setup script to create the Python virtual environment and install all de
 ```bash
 chmod +x setup_environment.sh
 ./setup_environment.sh
+# To activate environment:
+source venv/bin/activate
 ```
 
 This script will:
