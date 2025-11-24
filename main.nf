@@ -8,11 +8,10 @@
 // Parameters (can be overridden in nextflow.config or command line)
 params.species_list = ['mouse', 'rat']  // List of species to process
 params.outdir = "${projectDir}/results"
-params.python_env = 'auto'  // 'auto', 'venv', or 'conda'
 params.python_exec = null  // Optional: explicit path to Python executable
 
 // Function to detect Python executable
-// Works on both Linux and macOS, supports venv and conda
+// Works on both Linux and macOS, supports venv
 // This will be evaluated in each process context
 def getPythonExec() {
     // If explicitly set, use it
@@ -27,12 +26,6 @@ def getPythonExec() {
         return venvPython3.toString()
     } else if (venvPython.exists()) {
         return venvPython.toString()
-    }
-    
-    // Try conda environment if specified or auto
-    if (params.python_env == 'conda' || params.python_env == 'auto') {
-        // Return conda command - will be checked at runtime
-        return "conda run -n nf_phospho_pipeline python"
     }
     
     // Fall back to system python3 (works on both Linux and macOS)
